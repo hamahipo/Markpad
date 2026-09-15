@@ -2,6 +2,18 @@
 export type SplitEditorSide = 'left' | 'right';
 
 /**
+ * This fork's split-view default: preview on the left, editor on the right.
+ * `settings.splitEditorSide` starts here; Swap Panes still flips it.
+ */
+export const DEFAULT_SPLIT_EDITOR_SIDE: SplitEditorSide = 'right';
+
+/**
+ * Whether a newly split tab starts with its panes scroll-locked.
+ * On in this fork; the title-bar toggle still writes the preference.
+ */
+export const DEFAULT_SPLIT_SCROLL_SYNC = true;
+
+/**
  * Where the splitter leaves the editor's share after travelling `fraction` of
  * the window to the RIGHT. Negative `fraction` is leftward travel.
  *

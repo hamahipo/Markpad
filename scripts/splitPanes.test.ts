@@ -3,7 +3,11 @@ import test from 'node:test';
 
 import { readSource } from './sourceTree.js';
 
-import { splitRatioAfterMove } from '../src/lib/utils/splitPanes.ts';
+import {
+	DEFAULT_SPLIT_EDITOR_SIDE,
+	DEFAULT_SPLIT_SCROLL_SYNC,
+	splitRatioAfterMove,
+} from '../src/lib/utils/splitPanes.ts';
 
 test('the editor grows when the bar moves away from it, whichever side it is on', () => {
 	// Editor on the left: rightward travel is more editor.
@@ -36,4 +40,20 @@ test('both splitter routes take the direction from the same place', () => {
 
 	// No route may reintroduce the sign itself.
 	assert.equal(/splitEditorSide === 'left' \? /.test(viewer), false);
+});
+
+test('this fork defaults split view to preview-left and scroll-synced', () => {
+	// The layout swap and the lock already exist (#184 / title-bar toggle).
+	// These two defaults are the fork's product change: a fresh install
+	// should open a split with the preview on the left and the panes locked,
+	// without the reader having to find either control first.
+	assert.equal(DEFAULT_SPLIT_EDITOR_SIDE, 'right');
+	assert.equal(DEFAULT_SPLIT_SCROLL_SYNC, true);
+
+	const settingsSource = readSource(new URL('../src/lib/stores/settings.svelte.ts', import.meta.url));
+	assert.match(settingsSource, /splitEditorSide = \$state<SplitEditorSide>\(DEFAULT_SPLIT_EDITOR_SIDE\)/);
+	assert.match(settingsSource, /splitScrollSync = \$state\(DEFAULT_SPLIT_SCROLL_SYNC\)/);
+
+	const viewer = readSource(new URL('../src/lib/MarkdownViewer.svelte', import.meta.url));
+	assert.match(viewer, /class:editor-on-right=\{isSplit && settings\.splitEditorSide === 'right'\}/);
 });

@@ -33,6 +33,11 @@ import {
 	normalizePreviewMaxWidth,
 } from '../utils/previewWidth.js';
 import { getSupportedLanguages, type LanguageCode } from '../utils/i18n.js';
+import {
+	DEFAULT_SPLIT_EDITOR_SIDE,
+	DEFAULT_SPLIT_SCROLL_SYNC,
+	type SplitEditorSide,
+} from '../utils/splitPanes.js';
 
 export type OSType = 'macos' | 'windows' | 'linux' | 'unknown';
 
@@ -463,8 +468,12 @@ export class SettingsStore {
 	 * `TabManager.splitScrollSyncPreference` seeds the next split from — one
 	 * scalar shared by every tab and every window, so it belongs here with the
 	 * rest of them rather than in the tab store that reads it.
+	 *
+	 * On in this fork, so a new split already moves both panes together
+	 * rather than asking the reader to find the title-bar lock first. The
+	 * toggle still writes this preference, so turning it off once sticks.
 	 */
-	splitScrollSync = $state(false);
+	splitScrollSync = $state(DEFAULT_SPLIT_SCROLL_SYNC);
 	openFileMode = $state<OpenFileMode>(DEFAULT_OPEN_FILE_MODE);
 	newFileDefaultMode = $state(true);
 	showRecentFiles = $state(true);
@@ -531,8 +540,11 @@ export class SettingsStore {
 	 * write — and a reader sets it again per file. Which hand the editor is
 	 * under is about the reader, and answering it once per tab would mean
 	 * answering it again every time one is opened.
+	 *
+	 * This fork defaults to the editor on the right (preview left). Swap
+	 * Panes still flips it, and a stored value still wins on the next launch.
 	 */
-	splitEditorSide = $state<'left' | 'right'>('left');
+	splitEditorSide = $state<SplitEditorSide>(DEFAULT_SPLIT_EDITOR_SIDE);
 	tocWidth = $state(240);
 	osType = $state<OSType>('unknown');
 	imageDirectory = $state('img');
