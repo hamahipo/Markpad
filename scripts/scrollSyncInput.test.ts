@@ -24,3 +24,13 @@ test('typing does not initiate split scroll synchronization', () => {
 	assert.match(syncEffect, /editor\.onDidScrollChange/);
 	assert.doesNotMatch(syncEffect, /onDidChangeCursorPosition/);
 });
+
+test('a click in the preview puts the Monaco caret on the matching source line', () => {
+	const viewer = readSource('src/lib/MarkdownViewer.svelte');
+	assert.match(viewer, /editorPane\.jumpToBufferLine\(lineCoords\.toBufferRange\(range\)\.startLine\)/);
+	assert.match(viewer, /findSourceLineRange\(target\)/);
+
+	assert.match(editor, /export function jumpToBufferLine\(line: BufferLine\)/);
+	assert.match(editor, /editor\.setPosition\(\{ lineNumber, column: 1 \}\)/);
+	assert.match(editor, /editor\.revealLine\(lineNumber,/);
+});

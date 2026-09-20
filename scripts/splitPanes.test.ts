@@ -6,6 +6,7 @@ import { readSource } from './sourceTree.js';
 import {
 	DEFAULT_SPLIT_EDITOR_SIDE,
 	DEFAULT_SPLIT_SCROLL_SYNC,
+	restoredTabScrollSync,
 	splitRatioAfterMove,
 } from '../src/lib/utils/splitPanes.ts';
 
@@ -56,4 +57,15 @@ test('this fork defaults split view to preview-left and scroll-synced', () => {
 
 	const viewer = readSource(new URL('../src/lib/MarkdownViewer.svelte', import.meta.url));
 	assert.match(viewer, /class:editor-on-right=\{isSplit && settings\.splitEditorSide === 'right'\}/);
+});
+
+test('a restored split follows the scroll-sync preference when the snapshot left it off', () => {
+	assert.equal(restoredTabScrollSync(true, false, true), true);
+	assert.equal(restoredTabScrollSync(true, true, false), true);
+	assert.equal(restoredTabScrollSync(true, false, false), false);
+	assert.equal(restoredTabScrollSync(false, false, true), false);
+	assert.equal(restoredTabScrollSync(false, undefined, true), false);
+
+	const tabs = readSource(new URL('../src/lib/stores/tabs.svelte.ts', import.meta.url));
+	assert.match(tabs, /restoredTabScrollSync\(/);
 });

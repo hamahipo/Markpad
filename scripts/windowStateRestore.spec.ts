@@ -96,6 +96,22 @@ test('a restored tab comes back clean, empty and in its old place', () => {
 	assert.equal(tabManager.tabs[0].splitRatio, 0.3);
 });
 
+test('a restored split comes back scroll-locked when the preference is on', () => {
+	// Snapshots written before this fork's default-on recorded `false` for
+	// every tab that never toggled the lock. Restoring that as-is left split
+	// view with sync silently off despite the UI default.
+	tabManager.closeAll();
+	tabManager.splitScrollSyncPreference = true;
+	tabManager.restoreState(
+		JSON.stringify({
+			version: 2,
+			activeTabId: 'a',
+			tabs: [{ id: 'a', path: '/notes/a.md', title: 'a.md', isSplit: true, isScrollSynced: false }],
+		}),
+	);
+	assert.equal(tabManager.tabs[0].isScrollSynced, true);
+});
+
 test('a snapshot naming a tab that no longer exists still opens something', () => {
 	// activeTabId is written from the live tab list; an entry dropped on the
 	// read side (a legacy 'HOME', an untitled tab from an older build) can

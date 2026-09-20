@@ -867,6 +867,11 @@
 			pendingReveal = null;
 			revealSourceRange(startLine, endLine, placement);
 		}
+		if (pendingJumpLine !== null) {
+			const line = pendingJumpLine;
+			pendingJumpLine = null;
+			jumpToBufferLine(line);
+		}
 
 		return () => {
 			editorReady = false;
@@ -2401,6 +2406,7 @@
 	 */
 	type RevealPlacement = 'center' | 'top';
 	let pendingReveal: { startLine: number; endLine: number; placement: RevealPlacement } | null = null;
+	let pendingJumpLine: BufferLine | null = null;
 
 	/**
 	 * Put the reader on `startLine`..`endLine` of the buffer.
@@ -2442,6 +2448,27 @@
 			endLineNumber: end,
 			endColumn: model.getLineMaxColumn(end),
 		});
+		editor.focus();
+	}
+
+	/**
+	 * Put the caret on `line` of the buffer and scroll it into view. A click
+	 * in the preview asks for this rather than `revealSourceRange`, which
+	 * selects the whole block: here the reader pointed at a place, not a span.
+	 */
+	export function jumpToBufferLine(line: BufferLine) {
+		if (!editorReady || !editor) {
+			pendingJumpLine = line;
+			return;
+		}
+
+		const model = editor.getModel();
+		if (!model) return;
+
+		const lastLine = model.getLineCount();
+		const lineNumber = Math.min(Math.max(1, Math.trunc(line)), lastLine);
+		editor.setPosition({ lineNumber, column: 1 });
+		editor.revealLine(lineNumber, monaco.editor.ScrollType.Smooth);
 		editor.focus();
 	}
 
