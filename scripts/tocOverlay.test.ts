@@ -139,6 +139,39 @@ test('the outline collapses itself only when it is in the way', () => {
 	assert.match(viewer, /tocToggleEl\?\.contains\(target\)/);
 });
 
+test('a docked outline is a flex item so it pushes the panes, not an overlay', () => {
+	const viewer = readSource('src/lib/MarkdownViewer.svelte');
+
+	const pinned = viewer.match(/\.toc-overlay-wrapper\.is-pinned \{([^}]*)\}/g);
+	assert.ok(pinned && pinned.length === 1, 'exactly one .toc-overlay-wrapper.is-pinned rule — a later absolute override is what covered the text');
+	assert.match(pinned[0], /position:\s*relative/);
+	assert.match(pinned[0], /flex:\s*0 0 var\(--toc-width\)/);
+	assert.equal(
+		/position:\s*absolute/.test(pinned[0]),
+		false,
+		'docked must stay in flow; absolute + container padding does not inset these flex children',
+	);
+
+	assert.doesNotMatch(
+		viewer,
+		/\.layout-container\.has-pinned-toc\.toc-on-left \{[^}]*padding-left:\s*var\(--toc-width\)/,
+		'padding on the overflow-hidden flex container is what failed to shift the panes',
+	);
+
+	const floating = viewer.match(/\.toc-overlay-wrapper \{([^}]*)\}/);
+	assert.ok(floating, 'the undocked overlay rule moved or was renamed');
+	assert.match(floating[1], /position:\s*absolute/);
+
+	assert.match(
+		viewer,
+		/\.layout-container\.editor-on-right \.toc-overlay-wrapper\.is-pinned:not\(\.on-right\) \{[^}]*order:\s*10/,
+	);
+	assert.match(
+		viewer,
+		/\.layout-container\.editor-on-right \.toc-overlay-wrapper\.is-pinned\.on-right \{[^}]*order:\s*-10/,
+	);
+});
+
 test('the outline\'s toggle drops the editor toolbar\'s offset once it is over the outline', () => {
 	// Collapsed, the button floats over the editor pane and `--pane-top-chrome`
 	// is what keeps it clear of the toolbar. Expanded it floats over the OUTLINE,
