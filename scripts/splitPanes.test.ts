@@ -6,6 +6,8 @@ import { readSource } from './sourceTree.js';
 import {
 	DEFAULT_SPLIT_EDITOR_SIDE,
 	DEFAULT_SPLIT_SCROLL_SYNC,
+	SPLIT_SCROLL_SYNC_DEFAULT_ON_KEY,
+	coldStartSplitScrollSync,
 	restoredTabScrollSync,
 	splitRatioAfterMove,
 } from '../src/lib/utils/splitPanes.ts';
@@ -62,10 +64,24 @@ test('this fork defaults split view to preview-left and scroll-synced', () => {
 test('a restored split follows the scroll-sync preference when the snapshot left it off', () => {
 	assert.equal(restoredTabScrollSync(true, false, true), true);
 	assert.equal(restoredTabScrollSync(true, true, false), true);
-	assert.equal(restoredTabScrollSync(true, false, false), false);
+	assert.equal(restoredTabScrollSync(true, false, false), true);
 	assert.equal(restoredTabScrollSync(false, false, true), false);
 	assert.equal(restoredTabScrollSync(false, undefined, true), false);
 
 	const tabs = readSource(new URL('../src/lib/stores/tabs.svelte.ts', import.meta.url));
 	assert.match(tabs, /restoredTabScrollSync\(/);
+});
+
+test('a stored false does not win this fork\'s default-on at cold start', () => {
+	assert.equal(coldStartSplitScrollSync('false'), true);
+	assert.equal(coldStartSplitScrollSync('true'), true);
+	assert.equal(coldStartSplitScrollSync(null), true);
+	assert.equal(SPLIT_SCROLL_SYNC_DEFAULT_ON_KEY, 'editor.splitScrollSyncDefaultOnV1');
+
+	const settingsSource = readSource(new URL('../src/lib/stores/settings.svelte.ts', import.meta.url));
+	assert.match(settingsSource, /this\.splitScrollSync = coldStartSplitScrollSync\(/);
+	assert.match(settingsSource, /SPLIT_SCROLL_SYNC_DEFAULT_ON_KEY/);
+
+	const tabs = readSource(new URL('../src/lib/stores/tabs.svelte.ts', import.meta.url));
+	assert.match(tabs, /tab\.isScrollSynced = this\.splitScrollSyncPreference/);
 });

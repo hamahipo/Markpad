@@ -14,6 +14,24 @@ export const DEFAULT_SPLIT_EDITOR_SIDE: SplitEditorSide = 'right';
 export const DEFAULT_SPLIT_SCROLL_SYNC = true;
 
 /**
+ * Written once the fork has coerced `editor.splitScrollSync` to the default.
+ * Not a preference — it records that the old stored `false` was overridden.
+ */
+export const SPLIT_SCROLL_SYNC_DEFAULT_ON_KEY = 'editor.splitScrollSyncDefaultOnV1';
+
+/**
+ * Cold-start answer for `settings.splitScrollSync`.
+ *
+ * `booleanSetting` loads the stored key as-is, so a legacy `false` (this
+ * setting's old default) survived every launch and seeded new splits unlocked.
+ * This fork's product default wins that race: a stored `false` does not.
+ * The title-bar toggle can still turn the lock off for the session.
+ */
+export function coldStartSplitScrollSync(_stored: string | null): boolean {
+	return DEFAULT_SPLIT_SCROLL_SYNC;
+}
+
+/**
  * Whether a restored tab's panes should be scroll-locked.
  *
  * New splits copy `splitScrollSyncPreference`. Restored splits used to keep
@@ -22,6 +40,9 @@ export const DEFAULT_SPLIT_SCROLL_SYNC = true;
  * was created `false` and then split through a path that did not re-seed.
  * A split still follows the current preference in that case; an explicit
  * `true` in the snapshot wins, and a non-split tab stays unlocked.
+ *
+ * This fork's default-on also wins a split whose snapshot and preference are
+ * both false — the same stored-false race as {@link coldStartSplitScrollSync}.
  */
 export function restoredTabScrollSync(
 	savedIsSplit: boolean,
@@ -29,7 +50,7 @@ export function restoredTabScrollSync(
 	preference: boolean,
 ): boolean {
 	if (savedIsScrollSynced === true) return true;
-	if (savedIsSplit && preference) return true;
+	if (savedIsSplit && (preference || DEFAULT_SPLIT_SCROLL_SYNC)) return true;
 	return false;
 }
 

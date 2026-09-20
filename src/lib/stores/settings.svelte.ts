@@ -36,6 +36,8 @@ import { getSupportedLanguages, type LanguageCode } from '../utils/i18n.js';
 import {
 	DEFAULT_SPLIT_EDITOR_SIDE,
 	DEFAULT_SPLIT_SCROLL_SYNC,
+	SPLIT_SCROLL_SYNC_DEFAULT_ON_KEY,
+	coldStartSplitScrollSync,
 	type SplitEditorSide,
 } from '../utils/splitPanes.js';
 
@@ -482,7 +484,8 @@ export class SettingsStore {
 	 *
 	 * On in this fork, so a new split already moves both panes together
 	 * rather than asking the reader to find the title-bar lock first. The
-	 * toggle still writes this preference, so turning it off once sticks.
+	 * toggle still writes this preference for the session; a stored `false`
+	 * is not allowed to win the next launch — see `coldStartSplitScrollSync`.
 	 */
 	splitScrollSync = $state(DEFAULT_SPLIT_SCROLL_SYNC);
 	openFileMode = $state<OpenFileMode>(DEFAULT_OPEN_FILE_MODE);
@@ -599,6 +602,13 @@ export class SettingsStore {
 		};
 
 		loadPersistedSettings(this, entries);
+
+		// After the stored key is applied, not instead of it: a sibling window
+		// can still publish a mid-session OFF through the `storage` listener.
+		// Only this window's own boot is coerced, so a legacy `false` cannot
+		// seed the first split unlocked.
+		this.splitScrollSync = coldStartSplitScrollSync(localStorage.getItem('editor.splitScrollSync'));
+		writeStoredSetting(SPLIT_SCROLL_SYNC_DEFAULT_ON_KEY, '1');
 
 		// Font families default per OS, and the OS is only known once the
 		// backend answers. Re-apply just the ones the user never picked.
