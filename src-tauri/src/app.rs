@@ -50,11 +50,17 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(
             tauri_plugin_window_state::Builder::default()
+                // Not `VISIBLE`. The plugin's restore path calls `show()` and
+                // then `set_focus()` for every window that was visible last
+                // time — which is all of them — and that runs in
+                // `on_window_ready`, before the frontend mounts and
+                // independently of `show_window`'s quiet cold-start path.
+                // Size, position, maximized and fullscreen still restore;
+                // reveal stays with `show_window`.
                 .with_state_flags(
                     tauri_plugin_window_state::StateFlags::SIZE
                         | tauri_plugin_window_state::StateFlags::POSITION
                         | tauri_plugin_window_state::StateFlags::MAXIMIZED
-                        | tauri_plugin_window_state::StateFlags::VISIBLE
                         | tauri_plugin_window_state::StateFlags::FULLSCREEN,
                 )
                 // Detached tab windows share one saved state instead of

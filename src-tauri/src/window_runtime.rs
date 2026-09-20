@@ -366,6 +366,11 @@ static MAIN_WINDOW_SHOWN: AtomicBool = AtomicBool::new(false);
 /// `GDK_CURRENT_TIME` on Linux. Shown without it, the window appears behind
 /// whatever the user moved on to and waits there (#702).
 ///
+/// `Window::show` is not itself quiet on Windows: it is `ShowWindow(SW_SHOW)`,
+/// which activates. The first reveal of the main window therefore goes through
+/// `show_without_activating` so a user who has already clicked another taskbar
+/// app is not pulled back.
+///
 /// Only that first show is quiet. Every other caller is answering something the
 /// user just did — a detached tab window revealing itself, or the close walk
 /// bringing its window up so the dialog is not hidden behind another — and each
@@ -375,14 +380,48 @@ pub async fn show_window(window: tauri::Window) {
     let is_cold_start =
         window.label() == "main" && !MAIN_WINDOW_SHOWN.swap(true, Ordering::Relaxed);
 
-    let _ = window.show();
-
     if is_cold_start {
+        show_without_activating(&window);
         return;
     }
 
+    let _ = window.show();
     let _ = window.unminimize();
     let _ = window.set_focus();
+}
+
+/// Shows `window` without asking the OS to activate it.
+///
+/// On Windows `Window::show` is `SW_SHOW`, which activates even when the
+/// caller never reaches `set_focus`. `SW_SHOWNOACTIVATE` is the show that
+/// leaves the user's other app in the foreground; everywhere else `show`
+/// already has that meaning.
+fn show_without_activating(window: &tauri::Window) {
+    #[cfg(windows)]
+    {
+        if show_hwnd_noactivate(window) {
+            return;
+        }
+    }
+    let _ = window.show();
+}
+
+#[cfg(windows)]
+fn show_hwnd_noactivate(window: &tauri::Window) -> bool {
+    let Ok(hwnd) = window.hwnd() else {
+        return false;
+    };
+    // USER32 directly so a missing `windows` crate feature cannot silently
+    // turn this back into `SW_SHOW`. `SW_SHOWNOACTIVATE` is 4.
+    #[link(name = "user32")]
+    extern "system" {
+        fn ShowWindow(hwnd: *mut core::ffi::c_void, ncmdshow: i32) -> i32;
+    }
+    const SW_SHOWNOACTIVATE: i32 = 4;
+    unsafe {
+        let _ = ShowWindow(hwnd.0 as *mut core::ffi::c_void, SW_SHOWNOACTIVATE);
+    }
+    true
 }
 
 fn window_state_path(app: &AppHandle) -> Result<std::path::PathBuf, crate::error::Error> {

@@ -139,7 +139,7 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 	let showSettings = $state(false);
 
 	let recentFiles = $state<string[]>([]);
-	let isFocused = $state(true);
+	let isFocused = $state(false);
 	
 	let markdownBody: HTMLElement | null = $state(null);
 	let layoutContainerEl: HTMLElement | null = $state(null);
@@ -1637,9 +1637,12 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 	});
 
 	$effect(() => {
-		if (markdownBody && !isEditing && tabManager.activeTabId) {
+		// WebView2 treats HTMLElement.focus() as a request to activate the
+		// host window. Running this while the user is in another app is how
+		// a reading-mode preview pulls Markpad back to the foreground.
+		if (markdownBody && !isEditing && tabManager.activeTabId && isFocused) {
 			tick().then(() => {
-				markdownBody?.focus({ preventScroll: true });
+				if (isFocused) markdownBody?.focus({ preventScroll: true });
 			});
 		}
 	});
@@ -3634,8 +3637,22 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 			unlisteners.push(
 				await appWindow.onFocusChanged(({ payload: focused }) => {
 					isFocused = focused;
+					// Drop the webview's focused node so WebView2 has nothing
+					// to re-assert when Windows deactivates this HWND. A
+					// focused <article tabindex="-1"> is enough for the
+					// controller to call SetForegroundWindow and bounce
+					// Markpad back over the app the user just clicked.
+					if (!focused) {
+						const active = document.activeElement;
+						if (active instanceof HTMLElement) active.blur();
+					}
 				}),
 			);
+			try {
+				isFocused = await appWindow.isFocused();
+			} catch {
+				isFocused = false;
+			}
 			unlisteners.push(
 				await appWindow.listen('file-changed', async (event) => {
 					const changedPath = event.payload as string;
