@@ -90,6 +90,17 @@ export function resolveTheme(value: unknown): ThemeSetting {
 }
 
 /**
+ * The title-bar sun/moon control steps through the three built-ins. A VS Code
+ * theme is not in that ring — the next click leaves it for `light`, which is
+ * the first stop a reader can see without opening the full picker.
+ */
+export function nextBuiltInTheme(theme: ThemeSetting): ThemeSetting {
+	if (theme === 'light') return 'dark';
+	if (theme === 'dark') return 'system';
+	return 'light';
+}
+
+/**
  * The codes `isSupportedLanguage` will accept out of persisted storage, taken
  * from the same catalogue the language `<select>` renders.
  *

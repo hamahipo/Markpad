@@ -3990,9 +3990,6 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 					class:split={isSplit} 
 					class:editor-on-right={isSplit && settings.splitEditorSide === 'right'} 
 					class:editing={isEditing} 
-					class:has-pinned-toc={isMarkdown && settings.pinnedToc && settings.showToc}
-					class:toc-on-left={isMarkdown && settings.tocSide === 'left'}
-					class:toc-on-right={isMarkdown && settings.tocSide === 'right'}
 					class:toc-resizing={isTocResizing}
 					style="--toc-width: {settings.tocWidth}px; --pane-top-chrome: {paneTopChrome}px;">
 					<!-- Editor Pane -->
@@ -4804,9 +4801,10 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 	 * Swapping the panes reverses the row rather than reordering the markup
 	 * (#184). The editor keeps its place in the DOM, so focus order, the drag
 	 * hit test — which reads each pane's own `getBoundingClientRect()` — and
-	 * every `.editor-pane` / `.viewer-pane` rule carry over untouched. The
-	 * padding that a pinned outline adds is on the container and is unaffected
-	 * by the direction, so the outline stays on the side it is pinned to.
+	 * every `.editor-pane` / `.viewer-pane` rule carry over untouched. A pinned
+	 * outline is a flex item (so it pushes the panes) and would ride that
+	 * reverse to the other physical edge; `.editor-on-right` inverts its
+	 * `order` so it stays on the side it is pinned to.
 	 */
 	.layout-container.editor-on-right,
 	.drag-zones.editor-on-right {
@@ -4994,22 +4992,27 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 		order: -1;
 	}
 
+	/**
+	 * Docked: participate in the flex row so preview/editor/split shrink
+	 * instead of sitting under the panel. Undocked keeps the absolute overlay
+	 * from `.toc-overlay-wrapper` above. Do not override this back to
+	 * `position: absolute` — container padding does not inset these flex
+	 * children (`overflow: hidden` on `.layout-container`), which is how a
+	 * docked outline covered the text.
+	 */
 	.toc-overlay-wrapper.is-pinned {
 		position: relative;
 		top: 0 !important;
+		left: auto;
+		right: auto;
 		height: 100%;
+		flex: 0 0 var(--toc-width);
+		width: var(--toc-width);
 		z-index: 10;
-		background-color: transparent;
+		background-color: var(--color-canvas-default);
 		backdrop-filter: none;
 		-webkit-backdrop-filter: none;
 		box-shadow: none !important;
-	}
-	.layout-container.editing.has-pinned-toc.toc-on-left .editor-pane {
-		padding-left: 40px;
-	}
-	
-	.layout-container.editing.has-pinned-toc.toc-on-right .editor-pane {
-		padding-right: 40px;
 	}
 
 	.editor-pane {
@@ -5020,6 +5023,14 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 		left: auto;
 		right: 0;
 		order: 2;
+	}
+
+	.layout-container.editor-on-right .toc-overlay-wrapper.is-pinned:not(.on-right) {
+		order: 10;
+	}
+
+	.layout-container.editor-on-right .toc-overlay-wrapper.is-pinned.on-right {
+		order: -10;
 	}
 
 	.toc-overlay-wrapper.is-pinned.on-right {
@@ -5143,31 +5154,6 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 	.layout-container.toc-resizing .toc-overlay-wrapper,
 	.layout-container.toc-resizing .toc-toggle-floating {
 		transition: none !important;
-	}
-
-
-	.layout-container.has-pinned-toc.toc-on-left {
-		padding-left: var(--toc-width);
-	}
-
-	.layout-container.has-pinned-toc.toc-on-right {
-		padding-right: var(--toc-width);
-	}
-
-	.toc-overlay-wrapper.is-pinned {
-		position: absolute; /* Keep it absolute but it will stay in the padded area */
-		top: 36px !important;
-		left: 0;
-		height: calc(100% - 36px);
-		background-color: var(--color-canvas-default);
-		border-right: 1px solid var(--color-border-default);
-	}
-
-	.toc-overlay-wrapper.is-pinned.on-right {
-		left: auto;
-		right: 0;
-		border-right: none;
-		border-left: 1px solid var(--color-border-default);
 	}
 
 	.layout-container.editing .toc-overlay-wrapper:not(.on-right) {

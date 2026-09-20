@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import {
 	DEFAULT_TITLEBAR_TOOLBAR_ORDER,
+	DEFAULT_TITLEBAR_TOOLBAR_PLACEMENT,
 	getConfiguredTitlebarToolbarIds,
 	getTitlebarToolbarAdjacentMove,
 	getTitlebarToolbarReorderMove,
@@ -156,6 +157,21 @@ test('the home screen offers only the actions that are not about a document', ()
 		'theme',
 		'settings',
 	]);
+});
+
+test('the dark-mode toggle lives on the title bar, not in the kebab', () => {
+	assert.equal(DEFAULT_TITLEBAR_TOOLBAR_PLACEMENT.theme, 'bar');
+
+	// Older installs wrote `theme: menu` when that was the default. Forcing the
+	// bar here is what keeps the sun/moon control visible after an upgrade.
+	const configured = getConfiguredTitlebarToolbarIds(
+		['theme', 'settings'],
+		['theme', 'settings'],
+		[],
+		{ theme: 'menu', settings: 'menu' },
+	);
+	assert.deepEqual(configured.barIds, ['theme']);
+	assert.deepEqual(configured.menuIds, ['settings']);
 });
 
 test('Reset Zoom appears only away from 100%', () => {

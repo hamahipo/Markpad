@@ -50,6 +50,7 @@ const {
 	isSupportedLanguage,
 	isThemeSetting,
 	isWithinRange,
+	nextBuiltInTheme,
 	normalizePreZenState,
 	parseStoredNumber,
 	resolveLanguageTag,
@@ -525,6 +526,11 @@ test('an unusable stored theme falls back rather than being applied', () => {
 	assert.equal(resolveTheme('vscode:'), 'system');
 	assert.equal(isThemeSetting('vscode:'), false);
 	assert.equal(isThemeSetting(42), false);
+
+	assert.equal(nextBuiltInTheme('light'), 'dark');
+	assert.equal(nextBuiltInTheme('dark'), 'system');
+	assert.equal(nextBuiltInTheme('system'), 'light');
+	assert.equal(nextBuiltInTheme('vscode:Ayu Dark'), 'light');
 
 	resetStorage({ theme: 'midnight' });
 	assert.equal(createStore().theme, 'system');

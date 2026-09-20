@@ -38,7 +38,7 @@ const TITLEBAR_TOOLBAR_ACTIONS: TitlebarToolbarAction[] = [
 	{ id: 'zen', labelKey: 'menu.zenMode', fallbackName: 'Zen Mode', sample: 'Z', defaultPlacement: 'menu' },
 	{ id: 'tabs', labelKey: 'menu.openTabs', fallbackName: 'Open Tabs', sample: 'Tab', defaultPlacement: 'menu' },
 	{ id: 'zoom', labelKey: 'tooltip.resetZoom', fallbackName: 'Reset Zoom', sample: '%', defaultPlacement: 'menu' },
-	{ id: 'theme', labelKey: 'menu.changeTheme', fallbackName: 'Change Theme', sample: 'A', defaultPlacement: 'menu' },
+	{ id: 'theme', labelKey: 'menu.changeTheme', fallbackName: 'Change Theme', sample: 'A', defaultPlacement: 'bar' },
 	{ id: 'settings', labelKey: 'tooltip.settings', fallbackName: 'Settings', sample: '...', defaultPlacement: 'menu', required: true },
 ];
 
@@ -236,6 +236,12 @@ export function getConfiguredTitlebarToolbarIds(
 	const available = new Set(availableIds.filter((id) => knownToolbarIds.has(id)));
 	const hiddenIds = new Set(normalizeTitlebarToolbarHidden(hidden));
 	const normalizedPlacement = normalizeTitlebarToolbarPlacement(placement);
+	// The dark-mode toggle has to stay on the title bar. Older installs stored
+	// `theme: menu` (that was the default), which would otherwise keep it in
+	// the kebab — the control the reader cannot see.
+	if (available.has('theme') && !hiddenIds.has('theme')) {
+		normalizedPlacement.theme = 'bar';
+	}
 	const visibleIds = normalizeTitlebarToolbarOrder(order).filter((id) => available.has(id) && !hiddenIds.has(id));
 
 	return {

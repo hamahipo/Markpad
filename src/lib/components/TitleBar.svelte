@@ -7,7 +7,7 @@
 	import iconUrl from '../../assets/icon.png';
 	import TabList from './TabList.svelte';
 	import { tabManager } from '../stores/tabs.svelte.js';
-	import { settings } from '../stores/settings.svelte.js';
+	import { nextBuiltInTheme, resolveTheme, settings } from '../stores/settings.svelte.js';
 	import { t } from '../utils/i18n.js';
 	import { getConfiguredTitlebarToolbarIds, visibleTitlebarActionIds } from '../utils/titlebarToolbar.js';
 	import { modifierFor, shortcutLabel } from '../utils/shortcuts.js';
@@ -982,6 +982,11 @@
 						<button
 							class="title-action-btn {themeMenuOpen ? 'active' : ''}"
 							onclick={(e) => {
+								e.stopPropagation();
+								handleSetTheme(nextBuiltInTheme(resolveTheme(theme)));
+							}}
+							oncontextmenu={(e) => {
+								e.preventDefault();
 								e.stopPropagation();
 								themeMenuOpen = !themeMenuOpen;
 								if (themeMenuOpen) hideTooltip();
