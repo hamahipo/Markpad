@@ -34,3 +34,27 @@ test('a click in the preview puts the Monaco caret on the matching source line',
 	assert.match(editor, /editor\.setPosition\(\{ lineNumber, column: 1 \}\)/);
 	assert.match(editor, /editor\.revealLine\(lineNumber,/);
 });
+
+test('preview scroll drives the editor from the article, and a stuck echo flag cannot swallow the next wheel', () => {
+	const viewer = readSource('src/lib/MarkdownViewer.svelte');
+
+	// The article is the only scrollport the mapping knows. Measuring
+	// `e.target` would take a nested overflow (table, pre) whose
+	// scrollHeight is not the document's and report "top".
+	assert.match(viewer, /function previewScrollport\(/);
+	assert.match(viewer, /function driveEditorFromPreview\(/);
+	assert.match(viewer, /function handleScroll\(e: Event\) \{[\s\S]*?const target = previewScrollport\(e\);/);
+	assert.match(viewer, /driveEditorFromPreview\(e\)/);
+
+	// Assigning scrollTop is a no-op when the browser is already there, and a
+	// no-op does not fire `scroll`. The echo flag has to clear on the next
+	// frame whether or not that event arrives.
+	assert.match(
+		viewer,
+		/isProgrammaticScroll = true;[\s\S]*?markdownBody\.scrollTop = targetScroll;[\s\S]*?requestAnimationFrame\(\(\) => \{[\s\S]*?isProgrammaticScroll = false;/,
+	);
+
+	// Wheel is a second driver so a flag that did stay true cannot leave
+	// Monaco still while the reader keeps scrolling the preview.
+	assert.match(viewer, /onwheel=\{\(\) => driveEditorFromPreview\(\)\}/);
+});

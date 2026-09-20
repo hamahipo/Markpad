@@ -1719,8 +1719,17 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 
 		if (Math.abs(markdownBody.scrollTop - targetScroll) <= 5) return;
 
+		// Arm the echo, then clear it on the next frame whether or not a
+		// scroll event arrives. Assigning `scrollTop` is a no-op when the
+		// browser snaps to the current offset, and a no-op does not fire
+		// `scroll` — the old "clear on the next handleScroll" left the flag
+		// true, so the reader's next preview wheel was swallowed and Monaco
+		// never moved.
 		isProgrammaticScroll = true;
 		markdownBody.scrollTop = targetScroll;
+		requestAnimationFrame(() => {
+			isProgrammaticScroll = false;
+		});
 	}
 
 	/**
@@ -1787,11 +1796,28 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 		editorPane.syncScrollToPosition(position);
 	}
 
+	/**
+	 * The article is the only scrollport the mapping knows. `e.target` can be a
+	 * nested overflow (a table, a code block) whose `scrollHeight` is not the
+	 * document's, which produced a position of "top" and left Monaco still.
+	 */
+	function previewScrollport(e?: Event): HTMLElement | null {
+		if (markdownBody) return markdownBody;
+		const current = e?.currentTarget;
+		return current instanceof HTMLElement ? current : null;
+	}
+
+	function driveEditorFromPreview(e?: Event) {
+		const port = previewScrollport(e);
+		if (port) syncEditorToPreviewScroll(port);
+	}
+
 	let isScrolling = $state(false);
 	let scrollIdleTimer: ReturnType<typeof setTimeout>;
 
 	function handleScroll(e: Event) {
-		const target = e.target as HTMLElement;
+		const target = previewScrollport(e);
+		if (!target) return;
 
 		isAtBottom = Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) < 100;
 
@@ -1802,7 +1828,6 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 		}, 300);
 
 		if (isProgrammaticScroll) {
-			isProgrammaticScroll = false;
 			if (tabManager.activeTabId) {
 				tabManager.updateTabScroll(tabManager.activeTabId, target.scrollTop);
 			}
@@ -1829,7 +1854,7 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 			}
 		}
 
-		syncEditorToPreviewScroll(target);
+		driveEditorFromPreview(e);
 	}
 
 	/**
@@ -4083,6 +4108,7 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 									contenteditable="false"
 									class="markdown-body {settings.previewFullWidth ? 'full-width' : ''} {settings.showToc ? 'toc-active' : ''}"
 									onscroll={handleScroll}
+									onwheel={() => driveEditorFromPreview()}
 									onclick={handleLinkClick}
 									onchange={handleTaskCheckboxChange}
 									onkeydown={(e) => {
