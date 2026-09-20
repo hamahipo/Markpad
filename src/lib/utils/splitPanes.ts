@@ -14,6 +14,26 @@ export const DEFAULT_SPLIT_EDITOR_SIDE: SplitEditorSide = 'right';
 export const DEFAULT_SPLIT_SCROLL_SYNC = true;
 
 /**
+ * Whether a restored tab's panes should be scroll-locked.
+ *
+ * New splits copy `splitScrollSyncPreference`. Restored splits used to keep
+ * `isScrollSynced: false` whenever the snapshot was not exactly `true` — which
+ * is every session written before this fork's default-on, and every tab that
+ * was created `false` and then split through a path that did not re-seed.
+ * A split still follows the current preference in that case; an explicit
+ * `true` in the snapshot wins, and a non-split tab stays unlocked.
+ */
+export function restoredTabScrollSync(
+	savedIsSplit: boolean,
+	savedIsScrollSynced: unknown,
+	preference: boolean,
+): boolean {
+	if (savedIsScrollSynced === true) return true;
+	if (savedIsSplit && preference) return true;
+	return false;
+}
+
+/**
  * Where the splitter leaves the editor's share after travelling `fraction` of
  * the window to the RIGHT. Negative `fraction` is leftward travel.
  *

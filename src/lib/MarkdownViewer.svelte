@@ -236,6 +236,7 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
 		redo: () => void;
 		revealHeader: (sourceLine: BufferLine | null, text: string) => void;
 		revealSourceRange: (startLine: number, endLine: number) => void;
+		jumpToBufferLine: (line: BufferLine) => void;
 		triggerFind: () => void;
 		flushPositionTo: (tabId: string) => void;
 		// The three the editor's context menu runs, which are the three its
@@ -2000,6 +2001,18 @@ import { createDocumentSession, type LoadMarkdownOptions } from './sessions/docu
                 return;
             }
         }
+
+		// Split (or any layout with the editor on screen): a click in the
+		// preview is "put the caret on that source line". Links, folds and
+		// media return above. A drag-selection is left alone so Copy still
+		// has something to copy.
+		if (hasEditorPane && editorPane) {
+			const selection = window.getSelection();
+			if (selection && selection.rangeCount > 0 && !selection.isCollapsed) return;
+			const range = findSourceLineRange(target);
+			if (!range) return;
+			editorPane.jumpToBufferLine(lineCoords.toBufferRange(range).startLine);
+		}
     }
 
 	async function handleTaskCheckboxChange(event: Event) {

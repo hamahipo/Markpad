@@ -7,6 +7,7 @@ import { buildTransferredTab, type TransferableTab } from '../utils/tabTransfer.
 import { canonicalizePath, isSameFilePath } from '../utils/pathIdentity.js';
 import { asRendererLine, type RendererLine } from '../utils/lineCoordinates.js';
 import { outgoingTabAnchorLine } from '../utils/editorPosition.js';
+import { restoredTabScrollSync } from '../utils/splitPanes.js';
 import { retainTabModels } from '../utils/tabModels.js';
 import {
 	canGoBackInHistory,
@@ -475,7 +476,11 @@ class TabManager {
 					scrollFuture: [],
 					isSplit: saved.isSplit === true,
 					splitRatio: typeof saved.splitRatio === 'number' ? saved.splitRatio : 0.5,
-					isScrollSynced: saved.isScrollSynced === true,
+					isScrollSynced: restoredTabScrollSync(
+						saved.isSplit === true,
+						saved.isScrollSynced,
+						this.splitScrollSyncPreference,
+					),
 					// Not persisted — see serializeState.
 					foldOverrides: new Set<string>(),
 					isTruncated: false,
